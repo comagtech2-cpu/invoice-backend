@@ -1,0 +1,21 @@
+New Invoice from {{ business_name }}
+
+Invoice Number: {{ invoice_number }}
+Issue Date: {{ issue_date }}
+Due Date: {{ due_date }}
+Amount: ${{ total_amount }}
+
+Hello {{ client_name }},
+
+{{ business_name }} has sent you an invoice for {{ total_amount }}.
+
+You can view and download the invoice at the following link:
+{{ invoice_url }}
+
+If you have any questions about this invoice, please contact {{ business_name }} at {{ business_email }}.
+
+Thank you for your business!
+
+---
+This email was sent by Invoice SaaS on behalf of {{ business_name }}.
+{{ business_address }}

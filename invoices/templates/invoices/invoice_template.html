@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice</title>
+    <style>
+        body { font-family: sans-serif; }
+        .container { margin: 0 auto; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
+        .header h1 { margin: 0; }
+        .header .business-details { text-align: left; }
+        .header .invoice-details { text-align: right; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .total { text-align: right; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="business-details">
+                <h1>{{ invoice.business.name }}</h1>
+                <p>{{ invoice.business.address }}</p>
+                <p>{{ invoice.business.email }}</p>
+            </div>
+            <div class="invoice-details">
+                <h2>Invoice</h2>
+                <p><strong>Invoice #:</strong> {{ invoice.invoice_number }}</p>
+                <p><strong>Date:</strong> {{ invoice.date }}</p>
+                <p><strong>Due Date:</strong> {{ invoice.due_date }}</p>
+            </div>
+        </div>
+
+        <div>
+            <h3>Bill To:</h3>
+            <p>{{ invoice.client_name }}</p>
+            <p>{{ invoice.client_email }}</p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in invoice.items.all %}
+                <tr>
+                    <td>{{ item.description }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.unit_price }}</td>
+                    <td>{{ item.total }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="total">
+            <h3>Total Amount: {{ invoice.currency }} {{ invoice.total_amount }}</h3>
+        </div>
+    </div>
+</body>
+</html>
