@@ -22,12 +22,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-(^(w9^k7cik-i@i(9zw1_42d38crnb0&p0#q(3nwr1h%00l5tt')
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+
+# Security settings for production
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
 
 
 # Application definition
@@ -124,9 +131,14 @@ DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='Invoice SaaS <noreply
 
 import dj_database_url
 
+DATABASE_URL = config(
+    'DATABASE_URL',
+    default='postgres://postgres:postgres@localhost:5432/invoice_saas'
+)
+
 DATABASES = {
-    'default': dj_database_url.config(
-        default='sqlite:///db.sqlite3',
+    'default': dj_database_url.parse(
+        DATABASE_URL,
         conn_max_age=600
     )
 }
@@ -162,7 +174,20 @@ CORS_ALLOW_CREDENTIALS = True
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
-AUTH_PASSWORD_VALIDATORS = []
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
 
 
 # Internationalization

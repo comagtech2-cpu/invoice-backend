@@ -585,8 +585,11 @@ class ReceiptListCreateView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # If invoice is not paid, mark it paid now so receipt can be created
-        if invoice.status != 'paid':
+        # If amount paid meets or exceeds invoice total, mark invoice as paid.
+        # This logic assumes a single receipt pays off an invoice. For partial
+        # payments, a more complex system tracking total paid would be needed.
+        amount_paid = request.data.get('amount_paid', 0)
+        if invoice.status != 'paid' and float(amount_paid) >= float(invoice.total_amount):
             invoice.status = 'paid'
             invoice.save()
 

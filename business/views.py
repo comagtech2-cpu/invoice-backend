@@ -3,17 +3,27 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.pagination import PageNumberPagination
 from .models import Business, Client
 from .serializers import BusinessSerializer, ClientSerializer
 
 
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
 class BusinessListCreateView(APIView):
     parser_classes = (MultiPartParser, FormParser)
+    pagination_class = StandardResultsSetPagination
 
     def get(self, request):
         businesses = Business.objects.filter(created_by=request.user)
-        serializer = BusinessSerializer(businesses, many=True, context={'request': request})
-        return Response(serializer.data)
+        paginator = self.pagination_class()
+        paginated_businesses = paginator.paginate_queryset(businesses, request)
+        serializer = BusinessSerializer(paginated_businesses, many=True, context={'request': request})
+        return paginator.get_paginated_response(serializer.data)
     
     def post(self, request):
         serializer = BusinessSerializer(data=request.data, context={'request': request})

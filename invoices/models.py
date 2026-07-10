@@ -1,6 +1,8 @@
 from django.db import models
 from accounts.models import User
 from business.models import Business
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 
 
 class Invoice(models.Model):
@@ -227,3 +229,12 @@ class Receipt(models.Model):
 
     def __str__(self):
         return f"Receipt {self.receipt_number} for Invoice {self.invoice.invoice_number}"
+
+
+@receiver([post_save, post_delete], sender=InvoiceLineItem)
+def update_invoice_totals(sender, instance, **kwargs):
+    """
+    Signal handler to recalculate invoice totals when a line item is saved or deleted.
+    """
+    if instance.invoice:
+        instance.invoice.calculate_totals()
