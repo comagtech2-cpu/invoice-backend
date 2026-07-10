@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.pagination import PageNumberPagination
 from .models import Business, Client
 from .serializers import BusinessSerializer, ClientSerializer
@@ -15,7 +15,8 @@ class StandardResultsSetPagination(PageNumberPagination):
 
 
 class BusinessListCreateView(APIView):
-    parser_classes = (MultiPartParser, FormParser)
+    # support JSON as well as form/multipart (file upload removal still allows multipart)
+    parser_classes = (JSONParser, MultiPartParser, FormParser)
     pagination_class = StandardResultsSetPagination
 
     def get(self, request):
@@ -34,7 +35,7 @@ class BusinessListCreateView(APIView):
 
 
 class BusinessDetailView(APIView):
-    parser_classes = (MultiPartParser, FormParser)
+    parser_classes = (JSONParser, MultiPartParser, FormParser)
 
     def get(self, request, pk):
         try:

@@ -15,31 +15,23 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]
     
     def post(self, request):
-        serializer = UserSerializer(data=request.data)
+        # Ensure serializer receives a username (fallback to email)
+        data = request.data.copy()
+        if not data.get('username'):
+            # If username is not provided, use the email as the username.
+            # This is a common pattern for modern web apps.
+            data['username'] = data.get('email', '')
+
+        serializer = UserSerializer(data=data)
         if serializer.is_valid():
-            try:
-                # Validate password
-                validate_password(request.data['password'])
-                
-                # Create user
-                user = User.objects.create_user(
-                    username=request.data['username'],
-                    email=request.data['email'],
-                    password=request.data['password'],
-                    phone_number=request.data.get('phone_number', '')
-                )
-                
-                # Generate tokens
-                refresh = RefreshToken.for_user(user)
-                return Response({
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                    'user': UserSerializer(user).data
-                }, status=status.HTTP_201_CREATED)
-            except ValidationError as e:
-                return Response({'errors': e.messages}, status=status.HTTP_400_BAD_REQUEST)
-            except Exception as e:
-                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            user = serializer.save()
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user': UserSerializer(user).data
+            }, status=status.HTTP_201_CREATED)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

@@ -12,11 +12,11 @@ from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils import timezone
 from datetime import datetime
-from .models import Invoice, Receipt, RecurringInvoice, InvoiceTemplate
+from .models import Invoice, Receipt, RecurringInvoice, ReminderRule
 from .serializers import (
     InvoiceSerializer, DashboardSummarySerializer, ReportSerializer,
     FinancialReportSerializer, InvoiceReportSerializer, ReceiptSerializer,
-    RecurringInvoiceSerializer, ReminderRuleSerializer, InvoiceTemplateSerializer
+    RecurringInvoiceSerializer, ReminderRuleSerializer
 )
 from .utils import generate_invoice_pdf
 from business.models import Business, Client
@@ -152,57 +152,6 @@ class ReminderRuleDetailView(APIView):
             return Response({'error': 'ReminderRule not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
-class InvoiceTemplateListCreateView(APIView):
-    def get(self, request):
-        business_filter = request.GET.get('business')
-        queryset = InvoiceTemplate.objects.filter(business__created_by=request.user)
-        if business_filter:
-            queryset = queryset.filter(business_id=business_filter)
-        serializer = InvoiceTemplateSerializer(queryset, many=True)
-        return Response(serializer.data)
-
-    def post(self, request):
-        business_id = request.data.get('business')
-        try:
-            business = Business.objects.get(pk=business_id, created_by=request.user)
-        except Business.DoesNotExist:
-            return Response({'error': 'Business not found or not owned by user'}, status=status.HTTP_404_NOT_FOUND)
-
-        serializer = InvoiceTemplateSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(created_by=request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        logger.error('Invoice template create errors: %s', serializer.errors)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class InvoiceTemplateDetailView(APIView):
-    def get(self, request, pk):
-        try:
-            tmpl = InvoiceTemplate.objects.get(pk=pk, business__created_by=request.user)
-            serializer = InvoiceTemplateSerializer(tmpl)
-            return Response(serializer.data)
-        except InvoiceTemplate.DoesNotExist:
-            return Response({'error': 'InvoiceTemplate not found'}, status=status.HTTP_404_NOT_FOUND)
-
-    def put(self, request, pk):
-        try:
-            tmpl = InvoiceTemplate.objects.get(pk=pk, business__created_by=request.user)
-            serializer = InvoiceTemplateSerializer(tmpl, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except InvoiceTemplate.DoesNotExist:
-            return Response({'error': 'InvoiceTemplate not found'}, status=status.HTTP_404_NOT_FOUND)
-
-    def delete(self, request, pk):
-        try:
-            tmpl = InvoiceTemplate.objects.get(pk=pk, business__created_by=request.user)
-            tmpl.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except InvoiceTemplate.DoesNotExist:
-            return Response({'error': 'InvoiceTemplate not found'}, status=status.HTTP_404_NOT_FOUND)
 from rest_framework.pagination import PageNumberPagination
 
 logger = logging.getLogger(__name__)
@@ -399,18 +348,23 @@ class InvoiceListCreateView(APIView):
     def post(self, request):
         # Verify that the business belongs to the user
         business_id = request.data.get('business')
-        try:
-            business = Business.objects.get(id=business_id, created_by=request.user)
-        except Business.DoesNotExist:
+        if business_id in (None, ''):
             return Response(
-                {'error': 'Business not found or does not belong to you'}, 
+                {'business': ['Business id is required.']},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            business = Business.objects.get(pk=business_id, created_by=request.user)
+        except (ValueError, TypeError, Business.DoesNotExist):
+            return Response(
+                {'business': ['Business not found or does not belong to you.']},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         serializer = InvoiceSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save(created_by=request.user)
-            # Re-serialize to ensure fields like business_logo_url are present
             serializer = InvoiceSerializer(serializer.instance, context={'request': request})
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

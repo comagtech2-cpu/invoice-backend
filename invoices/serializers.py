@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.db import transaction
-from .models import Invoice, InvoiceLineItem, Receipt, InvoiceTemplate
+from .models import Invoice, InvoiceLineItem, Receipt
 
 
 class InvoiceLineItemSerializer(serializers.ModelSerializer):
@@ -13,24 +13,15 @@ class InvoiceLineItemSerializer(serializers.ModelSerializer):
 
 class InvoiceSerializer(serializers.ModelSerializer):
     line_items = InvoiceLineItemSerializer(many=True)
-    business_logo_url = serializers.SerializerMethodField(read_only=True)
+    business_name = serializers.CharField(source='business.name', read_only=True)
+    business_address = serializers.CharField(source='business.address', read_only=True)
+    business_email = serializers.CharField(source='business.email', read_only=True)
+    business_phone = serializers.CharField(source='business.phone_number', read_only=True)
 
     class Meta:
         model = Invoice
         fields = '__all__'
         read_only_fields = ('created_by', 'created_at', 'updated_at', 'subtotal', 'tax_amount', 'total_amount', 'invoice_number')
-
-    def get_business_logo_url(self, obj):
-        request = self.context.get('request')
-        if obj.business and obj.business.logo:
-            try:
-                url = obj.business.logo.url
-            except ValueError:
-                return None
-            if request:
-                return request.build_absolute_uri(url)
-            return url
-        return None
 
     def generate_invoice_number(self):
         """Generate a unique invoice number within a transaction to prevent race conditions."""
@@ -160,24 +151,11 @@ class ReceiptSerializer(serializers.ModelSerializer):
     business_name = serializers.CharField(source='invoice.business.name', read_only=True)
     currency = serializers.CharField(source='invoice.currency', read_only=True)
     line_items = InvoiceLineItemSerializer(source='invoice.line_items', many=True, read_only=True)
-    business_logo_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Receipt
         fields = '__all__'
         read_only_fields = ('created_by', 'created_at', 'updated_at', 'receipt_number')
-
-    def get_business_logo_url(self, obj):
-        request = self.context.get('request')
-        if obj.invoice and obj.invoice.business and obj.invoice.business.logo:
-            try:
-                url = obj.invoice.business.logo.url
-            except ValueError:
-                return None
-            if request:
-                return request.build_absolute_uri(url)
-            return url
-        return None
 
     def generate_receipt_number(self):
         """Generate a unique receipt number within a transaction to prevent race conditions."""
@@ -236,18 +214,4 @@ class ReminderRuleSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         from .models import ReminderRule
         self.Meta.model = ReminderRule
-        return super().to_representation(instance)
-
-
-class InvoiceTemplateSerializer(serializers.ModelSerializer):
-    business_name = serializers.CharField(source='business.name', read_only=True)
-
-    class Meta:
-        model = InvoiceTemplate
-        fields = '__all__'
-        read_only_fields = ('id', 'created_at', 'updated_at', 'created_by')
-
-    def to_representation(self, instance):
-        from .models import InvoiceTemplate
-        self.Meta.model = InvoiceTemplate
         return super().to_representation(instance)

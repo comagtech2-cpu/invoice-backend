@@ -4,7 +4,7 @@ from django.core.management import call_command
 from django.utils import timezone
 from accounts.models import User
 from business.models import Business, Client
-from .models import RecurringInvoice, Invoice, ReminderRule, InvoiceTemplate
+from .models import RecurringInvoice, Invoice, ReminderRule
 from datetime import date
 
 
@@ -78,53 +78,6 @@ class ReminderTestCase(TestCase):
         self.assertIn('Reminder', message.subject)
         self.assertIn('clientx@example.com', message.to)
 
-    def test_create_invoice_from_template(self):
-        # Create a template for the business
-        tmpl = InvoiceTemplate.objects.create(
-            business=self.business,
-            name='Service Template',
-            defaults={'line_items': [{'description': 'Monthly service', 'quantity': 1, 'unit_price': 250}], 'tax_rate': 0},
-            created_by=self.user
-        )
-
-        # Create invoice using template defaults merged with explicit fields
-        data = {
-            'business': self.business.id,
-            'client_name': 'Client Z',
-            'issue_date': timezone.now().date(),
-            'due_date': timezone.now().date(),
-            'line_items': tmpl.defaults.get('line_items'),
-            'tax_rate': tmpl.defaults.get('tax_rate', 0),
-            'currency': 'USD'
-        }
-
-        client = APIClient()
-        client.force_authenticate(user=self.user)
-        response = client.post('/api/invoices/', data, format='json')
-        self.assertEqual(response.status_code, 201)
-        inv = Invoice.objects.filter(business=self.business, client_name='Client Z').first()
-        self.assertIsNotNone(inv)
-        self.assertEqual(str(inv.total_amount), '250.00')
-
-    def test_invoice_template_api_crud(self):
-        client = APIClient()
-        client.force_authenticate(user=self.user)
-        # Create
-        payload = {'business': self.business.id, 'name': 'API Template', 'defaults': {'line_items': [{'description': 'X', 'quantity':1, 'unit_price':50}]}}
-        resp = client.post('/api/invoice-templates/', payload, format='json')
-        self.assertEqual(resp.status_code, 201)
-        tmpl_id = resp.data['id']
-        # Get
-        resp = client.get(f'/api/invoice-templates/{tmpl_id}/')
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.data['name'], 'API Template')
-        # Update
-        resp = client.put(f'/api/invoice-templates/{tmpl_id}/', {'name': 'Renamed'}, format='json')
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.data['name'], 'Renamed')
-        # Delete
-        resp = client.delete(f'/api/invoice-templates/{tmpl_id}/')
-        self.assertEqual(resp.status_code, 204)
 
     def test_receipt_includes_currency(self):
         client = APIClient()
@@ -193,3 +146,26 @@ class ReminderTestCase(TestCase):
         self.assertGreaterEqual(len(resp.data['results']), 1)
         found = any(r['invoice_number'] == 'SENT-1' for r in resp.data['results'])
         self.assertTrue(found)
+
+    def test_invoice_create_requires_business(self):
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+        today = timezone.now().date()
+
+        invoice_payload = {
+            'business': '',
+            'client_name': 'No Business Client',
+            'issue_date': today,
+            'due_date': today,
+            'currency': 'NGN',
+            'tax_rate': 0,
+            'notes': 'Test invoice without business',
+            'line_items': [
+                {'description': 'Service', 'quantity': 1, 'unit_price': 100}
+            ]
+        }
+
+        resp = client.post('/api/invoices/', invoice_payload, format='json')
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn('business', resp.data)
+        self.assertEqual(resp.data['business'][0], 'Business id is required.')

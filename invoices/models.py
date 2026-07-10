@@ -172,28 +172,6 @@ class ReminderRule(models.Model):
         return targets.distinct()
 
 
-class InvoiceTemplate(models.Model):
-    """Stores invoice template defaults and HTML for rendering."""
-    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name='invoice_templates')
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True, null=True)
-
-    # Structured defaults for creating invoices from template
-    defaults = models.JSONField(blank=True, null=True)
-
-    # Optional HTML template used for PDF rendering (can be empty and default template used)
-    html_template = models.TextField(blank=True, null=True)
-
-    is_default = models.BooleanField(default=False)
-
-    created_by = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='invoice_templates')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.name} ({self.business.name})"
-
-
 class InvoiceLineItem(models.Model):
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='line_items')
     description = models.TextField()
