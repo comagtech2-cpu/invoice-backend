@@ -27,7 +27,14 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in config(
+        'ALLOWED_HOSTS',
+        default='localhost,127.0.0.1,invoice-backend-production-105a.up.railway.app,https://invoice-front-hyfd.onrender.com/'
+    ).split(',')
+    if host.strip()
+]
 
 # Security settings for production
 if not DEBUG:
@@ -144,10 +151,14 @@ DATABASES = {
 }
 
 # CORS Settings
-CORS_ALLOWED_ORIGINS = config(
-    'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001'
-).split(',')
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in config(
+        'CORS_ALLOWED_ORIGINS',
+        default='http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,https://invoice-saas-frontend.onrender.com'
+    ).split(',')
+    if origin.strip()
+]
 CORS_ALLOW_METHODS = [
     "DELETE",
     "GET",
