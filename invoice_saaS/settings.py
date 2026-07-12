@@ -27,7 +27,7 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = [
+ALLOWED_HOSTS_ENV = [
     host.strip()
     for host in config(
         'ALLOWED_HOSTS',
@@ -35,6 +35,8 @@ ALLOWED_HOSTS = [
     ).split(',')
     if host.strip()
 ]
+
+ALLOWED_HOSTS = ['*'] if '*' in ALLOWED_HOSTS_ENV else ALLOWED_HOSTS_ENV
 
 # Security settings for production
 if not DEBUG:
@@ -151,6 +153,8 @@ DATABASES = {
 }
 
 # CORS Settings
+CORS_ALLOW_ALL_ORIGINS = True
+
 CORS_ALLOWED_ORIGINS = [
     origin.strip()
     for origin in config(
