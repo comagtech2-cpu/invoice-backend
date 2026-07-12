@@ -31,7 +31,7 @@ ALLOWED_HOSTS = [
     host.strip()
     for host in config(
         'ALLOWED_HOSTS',
-        default='localhost,127.0.0.1,invoice-backend-production-105a.up.railway.app,https://invoice-front-hyfd.onrender.com/'
+        default='localhost,127.0.0.1,invoice-backend-production-105a.up.railway.app'
     ).split(',')
     if host.strip()
 ]
@@ -155,7 +155,16 @@ CORS_ALLOWED_ORIGINS = [
     origin.strip()
     for origin in config(
         'CORS_ALLOWED_ORIGINS',
-        default='http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,https://invoice-saas-frontend.onrender.com'
+        default='http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,https://invoice-front-hyfd.onrender.com,https://invoice-saas-frontend.onrender.com'
+    ).split(',')
+    if origin.strip()
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in config(
+        'CSRF_TRUSTED_ORIGINS',
+        default='https://invoice-front-hyfd.onrender.com,https://invoice-saas-frontend.onrender.com'
     ).split(',')
     if origin.strip()
 ]
